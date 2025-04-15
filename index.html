@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Obstacle Jump Game</title>
+    <title>Pome Run</title>
     <style>
         body {
             margin: 0;
@@ -75,18 +75,19 @@
 
         const gravity = 1; // 重力
         const player = {
-            x: 100,
-            y: canvas.height - 220, // プレイヤーの位置
+            x: 50, // プレイヤーの位置を左に寄せる
+            y: canvas.height - 180, // プレイヤーの位置を低く設定
             width: 70, // プレイヤーの幅
             height: 70, // プレイヤーの高さ
             dy: 0,
-            isJumping: false,
+            jumpCount: 0, // ジャンプ回数
         };
 
         const obstacles = [];
         const items = [];
         let frameCount = 0;
         let score = 0;
+        let nextObstacleFrame = Math.random() * 100 + 50; // ランダムな次の障害物生成フレーム数
 
         // 背景の描画
         function drawBackground() {
@@ -113,6 +114,7 @@
             const height = Math.random() * 40 + 150; // 障害物の高さ
             const width = Math.random() * 40 + 80; // 障害物の幅
             const typeIndex = Math.floor(Math.random() * obstacleImages.length); // 障害物の種類
+
             obstacles.push({
                 x: canvas.width,
                 y: canvas.height - height,
@@ -120,6 +122,8 @@
                 height: height,
                 image: obstacleImages[typeIndex]
             });
+
+            nextObstacleFrame = frameCount + Math.random() * 100 + 50; // 次の障害物の間隔をランダムに設定
         }
 
         // アイテムの作成
@@ -199,9 +203,9 @@
 
         // ジャンプの実行
         function jump() {
-            if (!player.isJumping) {
+            if (player.jumpCount < 2) { // 二段ジャンプ可能
                 player.dy = -25; // ジャンプの高さ
-                player.isJumping = true;
+                player.jumpCount++;
             }
         }
 
@@ -212,7 +216,7 @@
 
             if (player.y + player.height >= canvas.height - 150) {
                 player.y = canvas.height - 150 - player.height;
-                player.isJumping = false;
+                player.jumpCount = 0; // 着地時にジャンプ回数をリセット
             }
         }
 
@@ -230,7 +234,7 @@
             drawBackground();
 
             frameCount++;
-            if (frameCount % 100 === 0) {
+            if (frameCount >= nextObstacleFrame) {
                 createObstacle();
             }
             if (frameCount % 300 === 0) {
