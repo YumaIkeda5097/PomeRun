@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Obstacle Jump Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #b8e4f0;
+        }
+        canvas {
+            display: block;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+        }
+        #startScreen h1 {
+            font-size: 64px;
+            margin: 0;
+        }
+        #startScreen p {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        #highScore {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>Obstacle Jump Game</h1>
+        <p>Tap to Start</p>
+        <p id="highScore"></p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const startScreen = document.getElementById("startScreen");
+        const highScoreDisplay = document.getElementById("highScore");
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 画像の読み込み
+        const backgroundImage = new Image();
+        backgroundImage.src = 'assets/background.png'; // 背景画像
+        const playerImage = new Image();
+        playerImage.src = 'assets/player.png'; // プレイヤー画像
+        const obstacleImages = [
+            'assets/obstacle1.png',
+            'assets/obstacle2.png',
+            'assets/obstacle3.png'
+        ].map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+
+        const itemImage = new Image(); // アイテム画像
+        itemImage.src = 'assets/item.png'; // アイテム画像（例えばコイン）
+
+        const gravity = 1; // 重力
+        const player = {
+            x: 100,
+            y: canvas.height - 250, // プレイヤーの位置
+            width: 150, // プレイヤーの幅
+            height: 150, // プレイヤーの高さ
+            dy: 0,
+            isJumping: false,
+        };
+
+        const obstacles = [];
+        const items = [];
+        let frameCount = 0;
+        let score = 0;
+        let highScore = localStorage.getItem("highScore") ? parseInt(localStorage.getItem("highScore")) : 0;
+
+        // スタート画面にハイスコアを表示
+        function displayHighScore() {
+            highScoreDisplay.textContent = "High Score: " + highScore;
+        }
+
+        // 背景の描画
+        function drawBackground() {
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+        }
+
+        // スタート画面背景の描画
+        backgroundImage.onload = function() {
+            const startScreenCanvas = document.createElement("canvas");
+            const startScreenCtx = startScreenCanvas.getContext("2d");
+            startScreenCanvas.width = canvas.width;
+            startScreenCanvas.height = canvas.height;
+
+            startScreenCtx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            startScreen.style.backgroundImage = `url(${startScreenCanvas.toDataURL()})`;
+            startScreen.style.backgroundSize = "cover";
+
+            // Display the start screen
+            startScreen.style.display = "flex";
+            displayHighScore(); // ハイスコアを表示
+        };
+
+        // 障害物の作成
+        function createObstacle() {
+            const height = Math.random() * 50 + 200; // 障害物の高さ
+            const width = Math.random() * 50 + 100; // 障害物の幅
+            const typeIndex = Math.floor(Math.random() * obstacleImages.length); // 障害物の種類
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - height,
+                width: width,
+                height: height,
+                image: obstacleImages[typeIndex]
+            });
+        }
+
+        // アイテムの作成
+        function createItem() {
+            const itemHeight = 50; // アイテムの高さ
+            const itemWidth = 50; // アイテムの幅
+            const x = canvas.width;
+            const y = Math.random() * (canvas.height - itemHeight); // アイテムの位置
+
+            items.push({
+                x: x,
+                y: y,
+                width: itemWidth,
+                height: itemHeight,
+                image: itemImage
+            });
+        }
+
+        // 障害物の更新
+        function updateObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= 8; // 障害物のスピード
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                }
+
+                if (
+                    player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y
+                ) {
+                    endGame();
+                }
+            }
+        }
+
+        // アイテムの更新
+        function updateItems() {
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.x -= 8; // アイテムのスピード
+
+                if (item.x + item.width < 0) {
+                    items.splice(i, 1);
+                }
+
+                // プレイヤーがアイテムを取得した場合
+                if (
+                    player.x < item.x + item.width &&
+                    player.x + player.width > item.x &&
+                    player.y < item.y + item.height &&
+                    player.y + player.height > item.y
+                ) {
+                    items.splice(i, 1); // アイテムを削除
+                    score += 5; // スコアを増加
+                }
+            }
+        }
+
+        // 障害物の描画
+        function drawObstacles() {
+            obstacles.forEach((obs) => {
+                ctx.drawImage(obs.image, obs.x, obs.y, obs.width, obs.height);
+            });
+        }
+
+        // アイテムの描画
+        function drawItems() {
+            items.forEach((item) => {
+                ctx.drawImage(item.image, item.x, item.y, item.width, item.height);
+            });
+        }
+
+        // プレイヤーの描画
+        function drawPlayer() {
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+        }
+
+        // ジャンプの実行
+        function jump() {
+            if (!player.isJumping) {
+                player.dy = -30; // ジャンプの高さ
+                player.isJumping = true;
+            }
+        }
+
+        // プレイヤーの位置を更新
+        function updatePlayer() {
+            player.dy += gravity;
+            player.y += player.dy;
+
+            if (player.y + player.height >= canvas.height - 150) {
+                player.y = canvas.height - 150 - player.height;
+                player.isJumping = false;
+            }
+        }
+
+        // スコアの描画
+        function drawScore() {
+            ctx.fillStyle = "#fff";
+            ctx.font = "48px Arial";
+            ctx.fillText("Score: " + score, 20, 60);
+        }
+
+        // ゲーム終了
+        function endGame() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore); // ハイスコアを保存
+            }
+            alert("Game Over! Your Score: " + score);
+            document.location.reload();
+        }
+
+        // ゲームループ
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+
+            frameCount++;
+            if (frameCount % 100 === 0) {
+                createObstacle();
+            }
+
+            if (frameCount % 200 === 0) {
+                createItem(); // アイテムの生成
+            }
+
+            updatePlayer();
+            updateObstacles();
+            updateItems();
+
+            drawPlayer();
+            drawObstacles();
+            drawItems(); // アイテムの描画
+            drawScore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ゲームスタート
+        function startGame() {
+            startScreen.style.display = "none";
+            gameLoop();
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space") jump();
+        });
+
+        canvas.addEventListener("click", jump);
+        canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        startScreen.addEventListener("click", startGame);
+        startScreen.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            startGame();
+        });
+    </script>
+</body>
+</html>
