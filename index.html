@@ -76,9 +76,9 @@
         const gravity = 1; // 重力
         const player = {
             x: 100,
-            y: canvas.height - 250, // プレイヤーの位置
-            width: 100, // プレイヤーの幅 (元の大きさに戻しました)
-            height: 100, // プレイヤーの高さ (元の大きさに戻しました)
+            y: canvas.height - 220, // プレイヤーの位置
+            width: 70, // プレイヤーの幅
+            height: 70, // プレイヤーの高さ
             dy: 0,
             isJumping: false,
         };
@@ -110,8 +110,8 @@
 
         // 障害物の作成
         function createObstacle() {
-            const height = Math.random() * 50 + 200; // 障害物の高さ
-            const width = Math.random() * 50 + 100; // 障害物の幅
+            const height = Math.random() * 40 + 150; // 障害物の高さ
+            const width = Math.random() * 40 + 80; // 障害物の幅
             const typeIndex = Math.floor(Math.random() * obstacleImages.length); // 障害物の種類
             obstacles.push({
                 x: canvas.width,
@@ -124,7 +124,7 @@
 
         // アイテムの作成
         function createItem() {
-            const size = Math.random() * 30 + 50; // アイテムの大きさ
+            const size = Math.random() * 20 + 40; // アイテムの大きさ
             items.push({
                 x: canvas.width,
                 y: Math.random() * (canvas.height - 300) + 100, // ランダムな高さ
@@ -200,7 +200,7 @@
         // ジャンプの実行
         function jump() {
             if (!player.isJumping) {
-                player.dy = -30; // ジャンプの高さ
+                player.dy = -25; // ジャンプの高さ
                 player.isJumping = true;
             }
         }
